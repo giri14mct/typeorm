@@ -1,147 +1,34 @@
 import { AppDataSource } from "./data-source";
-import { User } from "./entity/User";
 import * as Hapi from "@hapi/hapi";
+import { userRoutes } from "./routes/userRoutes";
+import { movieRoutes } from "./routes/movieRoutes";
 
-interface PageInfo {
-  currentPage: number;
-  perPage: number;
-  totalCount: number;
-}
-
+type Route = {
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  handler: (req: any, h: any) => Promise<any>;
+};
 const startServer = async () => {
   const server = Hapi.server({
     port: 3000,
     host: "localhost",
   });
 
+  const routes = [...userRoutes, ...movieRoutes];
+  routes.forEach((route: Route) => {
+    server.route(route);
+  });
+
   server.route({
-    method: "GET",
-    path: "/",
+    method: "*",
+    path: "/{any*}",
     handler: (_, h) => {
-      return h.response("Please provide a valid route").code(400);
+      return h.response("Route Not Found").code(404);
     },
-  });
-
-  server.route({
-    method: "GET",
-    path: "/users",
-    handler: getUsersHandler,
-  });
-
-  server.route({
-    method: "POST",
-    path: "/users",
-    handler: createUserHandler,
-  });
-
-  server.route({
-    method: "PUT",
-    path: "/users/{id}",
-    handler: updateUserHandler,
-  });
-
-  server.route({
-    method: "DELETE",
-    path: "/users/{id}",
-    handler: deleteUserHandler,
   });
 
   await server.start();
   console.log("Server running on %s", server.info.uri);
-};
-
-const getUsersHandler = async (req, h) => {
-  const page: number = parseInt(req.query.page) || 1;
-  const perPage: number = parseInt(req.query.perPage) || 10;
-  const skip: number = (page - 1) * perPage;
-
-  const [users, totalCount]: [User[], number] = await Promise.all([
-    AppDataSource.manager.find(User, {
-      skip,
-      take: perPage,
-      order: { id: "ASC" },
-    }),
-    AppDataSource.manager.count(User),
-  ]);
-
-  const pageInfo: PageInfo = {
-    currentPage: page,
-    perPage,
-    totalCount,
-  };
-
-  return {
-    users,
-    pageInfo,
-  };
-};
-
-const createUserHandler = async (req, h) => {
-  try {
-    const { firstName, lastName, age } = req.payload as User;
-
-    if (!firstName || !lastName || !age) {
-      return h.response("Missing required fields").code(400);
-    }
-
-    const user = new User();
-    user.firstName = firstName;
-    user.lastName = lastName;
-    user.age = age;
-    await AppDataSource.manager.save(user);
-    return h.response("Saved successfully").code(200);
-  } catch (err) {
-    return h.response(`Internal Server Error: ${err.message}`).code(500);
-  }
-};
-
-const updateUserHandler = async (req, h) => {
-  try {
-    const { firstName, lastName, age } = req.payload as User;
-    const userId: number = req.params.id;
-
-    if (!firstName || !lastName || !age || !userId) {
-      return h.response("Missing required fields or ID").code(400);
-    }
-
-    const user: User | undefined = await AppDataSource.manager.findOneBy(User, {
-      id: userId,
-    });
-    if (!user) {
-      return h.response("User not found").code(404);
-    }
-
-    user.firstName = firstName;
-    user.lastName = lastName;
-    user.age = age;
-
-    await AppDataSource.manager.save(user);
-    return h.response("Updated successfully").code(200);
-  } catch (err) {
-    return h.response(`Internal Server Error: ${err.message}`).code(500);
-  }
-};
-
-const deleteUserHandler = async (req, h) => {
-  try {
-    const userId: number = req.params.id;
-
-    if (!userId) {
-      return h.response("ID missing").code(400);
-    }
-
-    const user: User | undefined = await AppDataSource.manager.findOneBy(User, {
-      id: userId,
-    });
-    if (!user) {
-      return h.response("User not found").code(404);
-    }
-
-    await AppDataSource.manager.remove(user);
-    return h.response("Deleted successfully").code(200);
-  } catch (err) {
-    return h.response(`Internal Server Error: ${err.message}`).code(500);
-  }
 };
 
 startServer();
