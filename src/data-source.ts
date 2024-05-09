@@ -2,6 +2,8 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { User } from "./entity/User";
 import { Movie } from "./entity/Movie";
+import { MovieRating } from "./entity/MovieRating";
+
 export const AppDataSource = new DataSource({
   type: "postgres",
   host: "localhost",
@@ -11,7 +13,7 @@ export const AppDataSource = new DataSource({
   database: "hapi-learning",
   synchronize: true,
   logging: false,
-  entities: [User, Movie],
+  entities: [User, Movie, MovieRating],
   migrations: [],
   subscribers: [],
 });

@@ -21,4 +21,9 @@ export const movieRoutes = [
     path: "/movies/{id}",
     handler: MovieController.deleteMovieHandler,
   },
+  {
+    method: "PUT",
+    path: "/movies/{id}/rating",
+    handler: MovieController.addRatingHandler,
+  },
 ];

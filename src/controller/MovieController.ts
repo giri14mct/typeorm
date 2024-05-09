@@ -1,36 +1,11 @@
 import { AppDataSource } from "../data-source";
 import { Movie } from "../entity/Movie";
-
-interface PageInfo {
-  currentPage: number;
-  perPage: number;
-  totalCount: number;
-}
+import { indexAction } from "../../lib/indexAction";
+import { deleteAction } from "../../lib/deleteAction";
+import { MovieRating } from "../entity/MovieRating";
 
 export const getMovieHandler = async (req, h) => {
-  const page: number = parseInt(req.query.page) || 1;
-  const perPage: number = parseInt(req.query.perPage) || 10;
-  const skip: number = (page - 1) * perPage;
-
-  const [movies, totalCount]: [Movie[], number] = await Promise.all([
-    AppDataSource.manager.find(Movie, {
-      skip,
-      take: perPage,
-      order: { id: "ASC" },
-    }),
-    AppDataSource.manager.count(Movie),
-  ]);
-
-  const pageInfo: PageInfo = {
-    currentPage: page,
-    perPage,
-    totalCount,
-  };
-
-  return {
-    movies,
-    pageInfo,
-  };
+  return indexAction(req, "Movie");
 };
 
 export const createMovieHandler = async (req, h) => {
@@ -81,25 +56,33 @@ export const updateMovieHandler = async (req, h) => {
 };
 
 export const deleteMovieHandler = async (req, h) => {
+  return deleteAction(req, "Movie", h);
+};
+
+export const addRatingHandler = async (req, h) => {
   try {
+    const { rating, duration } = req.payload as MovieRating;
     const movieId: number = req.params.id;
 
-    if (!movieId) {
-      return h.response("ID missing").code(400);
+    if (!rating || !duration || !movieId) {
+      return h.response("Missing required fields").code(400);
     }
 
     const movie: Movie | undefined = await AppDataSource.manager.findOneBy(
       Movie,
-      {
-        id: movieId,
-      }
+      { id: movieId }
     );
+
     if (!movie) {
       return h.response("Movie not found").code(404);
     }
 
-    await AppDataSource.manager.remove(movie);
-    return h.response("Deleted successfully").code(200);
+    const movieRating = new MovieRating();
+    movieRating.rating = rating;
+    movieRating.duration = duration;
+    movieRating.movie = movie;
+    await AppDataSource.manager.save(movieRating);
+    return h.response("Updated successfully").code(200);
   } catch (err) {
     return h.response(`Internal Server Error: ${err.message}`).code(500);
   }
