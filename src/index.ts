@@ -1,6 +1,12 @@
 import { AppDataSource } from "./data-source";
 import { User } from "./entity/User";
-const Hapi = require("@hapi/hapi");
+import * as Hapi from "@hapi/hapi";
+
+interface PageInfo {
+  currentPage: number;
+  perPage: number;
+  totalCount: number;
+}
 
 const startServer = async () => {
   const server = Hapi.server({
@@ -45,11 +51,11 @@ const startServer = async () => {
 };
 
 const getUsersHandler = async (req, h) => {
-  const page = parseInt(req.query.page) || 1;
-  const perPage = parseInt(req.query.perPage) || 10;
-  const skip = (page - 1) * perPage;
+  const page: number = parseInt(req.query.page) || 1;
+  const perPage: number = parseInt(req.query.perPage) || 10;
+  const skip: number = (page - 1) * perPage;
 
-  const [users, totalCount] = await Promise.all([
+  const [users, totalCount]: [User[], number] = await Promise.all([
     AppDataSource.manager.find(User, {
       skip,
       take: perPage,
@@ -58,19 +64,21 @@ const getUsersHandler = async (req, h) => {
     AppDataSource.manager.count(User),
   ]);
 
+  const pageInfo: PageInfo = {
+    currentPage: page,
+    perPage,
+    totalCount,
+  };
+
   return {
     users,
-    pageInfo: {
-      currentPage: page,
-      perPage,
-      totalCount,
-    },
+    pageInfo,
   };
 };
 
 const createUserHandler = async (req, h) => {
   try {
-    const { firstName, lastName, age } = req.payload;
+    const { firstName, lastName, age } = req.payload as User;
 
     if (!firstName || !lastName || !age) {
       return h.response("Missing required fields").code(400);
@@ -89,14 +97,16 @@ const createUserHandler = async (req, h) => {
 
 const updateUserHandler = async (req, h) => {
   try {
-    const { firstName, lastName, age } = req.payload;
-    const userId = req.params.id;
+    const { firstName, lastName, age } = req.payload as User;
+    const userId: number = req.params.id;
 
     if (!firstName || !lastName || !age || !userId) {
       return h.response("Missing required fields or ID").code(400);
     }
 
-    const user = await AppDataSource.manager.findOneBy(User, { id: userId });
+    const user: User | undefined = await AppDataSource.manager.findOneBy(User, {
+      id: userId,
+    });
     if (!user) {
       return h.response("User not found").code(404);
     }
@@ -114,13 +124,15 @@ const updateUserHandler = async (req, h) => {
 
 const deleteUserHandler = async (req, h) => {
   try {
-    const userId = req.params.id;
+    const userId: number = req.params.id;
 
     if (!userId) {
       return h.response("ID missing").code(400);
     }
 
-    const user = await AppDataSource.manager.findOneBy(User, { id: userId });
+    const user: User | undefined = await AppDataSource.manager.findOneBy(User, {
+      id: userId,
+    });
     if (!user) {
       return h.response("User not found").code(404);
     }
