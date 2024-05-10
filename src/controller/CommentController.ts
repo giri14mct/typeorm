@@ -1,6 +1,7 @@
 import { AppDataSource } from "../data-source";
 import { Comment } from "../entity/Comment";
 import { Movie } from "../entity/Movie";
+import { validate } from "class-validator";
 
 export const createCommentHandler = async (req, h) => {
   try {
@@ -21,7 +22,23 @@ export const createCommentHandler = async (req, h) => {
     const comment = new Comment();
     comment.text = text;
     comment.movie = movie;
-    await AppDataSource.manager.save(comment);
+    const errors = await validate(comment);
+
+    if (errors.length > 0) {
+      const errorMessage = errors.map((error) =>
+        Object.values(error.constraints)
+      );
+
+      let response = {
+        status: false,
+        message: "Unprocessable Entity",
+        data: errorMessage.flat(),
+      };
+
+      return h.response(response).code(422);
+    } else {
+      await AppDataSource.manager.save(comment);
+    }
     return h.response("Saved successfully").code(200);
   } catch (err) {
     return h.response(`Internal Server Error: ${err.message}`).code(500);
