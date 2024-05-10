@@ -31,10 +31,14 @@ export const createCustomerHandler = async (req, h) => {
 export const getCustomerHandler = async (req, h) => {
   try {
     const customers = await AppDataSource.manager.find(Customer, {
+      select: {
+        name: true,
+      },
       relations: {
         movies: true,
       },
     });
+
     return h.response(customers).code(200);
   } catch (err) {
     return h.response(`Internal Server Error: ${err.message}`).code(500);
