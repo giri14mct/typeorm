@@ -2,6 +2,7 @@ import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
 import { indexAction } from "../../lib/indexAction";
 import { deleteAction } from "../../lib/deleteAction";
+import { validate } from "class-validator";
 
 export const getUsersHandler = async (req, h) => {
   return indexAction(req, "User");
@@ -9,7 +10,7 @@ export const getUsersHandler = async (req, h) => {
 
 export const createUserHandler = async (req, h) => {
   try {
-    const { firstName, lastName, age } = req.payload as User;
+    const { firstName, lastName, age, email } = req.payload as User;
 
     if (!firstName || !lastName || !age) {
       return h.response("Missing required fields").code(400);
@@ -19,7 +20,24 @@ export const createUserHandler = async (req, h) => {
     user.firstName = firstName;
     user.lastName = lastName;
     user.age = age;
-    await AppDataSource.manager.save(user);
+    user.email = email;
+    const errors = await validate(user);
+
+    if (errors.length > 0) {
+      const errorMessage = errors.map((error) =>
+        Object.values(error.constraints)
+      );
+
+      let response = {
+        status: false,
+        message: "Unprocessable Entity",
+        data: errorMessage.flat(),
+      };
+
+      return h.response(response).code(422);
+    } else {
+      await AppDataSource.manager.save(user);
+    }
     return h.response("Saved successfully").code(200);
   } catch (err) {
     return h.response(`Internal Server Error: ${err.message}`).code(500);
@@ -28,7 +46,7 @@ export const createUserHandler = async (req, h) => {
 
 export const updateUserHandler = async (req, h) => {
   try {
-    const { firstName, lastName, age } = req.payload as User;
+    const { firstName, lastName, age, email } = req.payload as User;
     const userId: number = req.params.id;
 
     if (!firstName || !lastName || !age || !userId) {
@@ -45,8 +63,24 @@ export const updateUserHandler = async (req, h) => {
     user.firstName = firstName;
     user.lastName = lastName;
     user.age = age;
+    user.email = email;
+    const errors = await validate(user);
 
-    await AppDataSource.manager.save(user);
+    if (errors.length > 0) {
+      const errorMessage = errors.map((error) =>
+        Object.values(error.constraints)
+      );
+
+      let response = {
+        status: false,
+        message: "Unprocessable Entity",
+        data: errorMessage.flat(),
+      };
+
+      return h.response(response).code(422);
+    } else {
+      await AppDataSource.manager.save(user);
+    }
     return h.response("Updated successfully").code(200);
   } catch (err) {
     return h.response(`Internal Server Error: ${err.message}`).code(500);
