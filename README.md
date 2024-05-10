@@ -1,4 +1,4 @@
-# Awesome Project Build with TypeORM
+# Training Project Build with TypeORM and TS
 
 Steps to run this project:
 
