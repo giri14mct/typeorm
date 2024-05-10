@@ -1,4 +1,12 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  ManyToMany,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
+import { Comment } from "./Comment";
+import { Customer } from "./Customer";
 
 export enum Genres {
   HORROR = "horror",
@@ -25,4 +33,10 @@ export class Movie {
 
   @Column()
   year: number;
+
+  @OneToMany(() => Comment, (comment) => comment.movie)
+  comments: Comment[];
+
+  @ManyToMany(() => Customer, (customer) => customer.movies)
+  customers: Customer[];
 }

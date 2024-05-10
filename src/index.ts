@@ -2,6 +2,8 @@ import { AppDataSource } from "./data-source";
 import * as Hapi from "@hapi/hapi";
 import { userRoutes } from "./routes/userRoutes";
 import { movieRoutes } from "./routes/movieRoutes";
+import { customerRoutes } from "./routes/customerRoutes";
+import { commentRoutes } from "./routes/commentRoutes";
 
 type Route = {
   method: "GET" | "POST" | "PUT" | "DELETE";
@@ -14,7 +16,12 @@ const startServer = async () => {
     host: "localhost",
   });
 
-  const routes = [...userRoutes, ...movieRoutes];
+  const routes = [
+    ...userRoutes,
+    ...movieRoutes,
+    ...customerRoutes,
+    ...commentRoutes,
+  ];
   routes.forEach((route: Route) => {
     server.route(route);
   });
